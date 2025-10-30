@@ -67,22 +67,30 @@ class GardenService extends ChangeNotifier {
     await _db.updateUser(_pandaUser!);
     notifyListeners();
   }
-  Future<void> createVisitorRequest(String visitorId, String visitorName) async {
+  Future<void> createVisitorRequest(
+      String visitorId,
+      String visitorName,
+      {GardenStatus? requestedStatus} // NEW: optional status change
+      ) async {
     final request = VisitorRequest(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       visitorId: visitorId,
       visitorName: visitorName,
       requestedAt: DateTime.now(),
-      // REMOVE: plannedVisitTime: plannedTime,
+      requestedStatus: requestedStatus, // NEW
       status: RequestStatus.pending,
     );
 
     await _db.createRequest(request);
 
     // Send push notification to panda
+    final notificationBody = requestedStatus != null
+        ? '$visitorName wants to change status to ${requestedStatus.displayName}'
+        : '$visitorName wants to visit the garden';
+
     await NotificationService.instance.showNotification(
       title: '🐼 New Visitor Request',
-      body: '$visitorName wants to visit the garden',
+      body: notificationBody,
     );
 
     await loadRequests();
@@ -96,18 +104,22 @@ class GardenService extends ChangeNotifier {
     );
 
     await _db.updateRequest(updatedRequest);
-    
-    // Approve the visitor
-    await _db.approveVisitor(request.visitorId);
-    
-    // Update visitor status
+
+    // Approve the visitor if not already approved
     final visitor = _visitors.firstWhere((v) => v.id == request.visitorId);
-    final updatedVisitor = visitor.copyWith(
-      isApproved: true,
-      status: GardenStatus.goingToGarden,
-      statusUpdatedAt: DateTime.now(),
-    );
-    await _db.updateUser(updatedVisitor);
+    if (!visitor.isApproved) {
+      await _db.approveVisitor(request.visitorId);
+    }
+
+    // Update visitor status if this was a status change request
+    if (request.requestedStatus != null) {
+      final updatedVisitor = visitor.copyWith(
+        isApproved: true,
+        status: request.requestedStatus, // Apply the requested status
+        statusUpdatedAt: DateTime.now(),
+      );
+      await _db.updateUser(updatedVisitor);
+    }
 
     await loadData();
   }

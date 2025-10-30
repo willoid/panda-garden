@@ -1,10 +1,11 @@
-import 'user.dart';
+import 'package:panda_garden/models/user.dart';
 
 class VisitorRequest {
   final String id;
   final String visitorId;
   final String visitorName;
   final DateTime requestedAt;
+  final GardenStatus? requestedStatus; // NEW: The status they want to change to
   RequestStatus status;
   final DateTime? respondedAt;
 
@@ -13,6 +14,7 @@ class VisitorRequest {
     required this.visitorId,
     required this.visitorName,
     required this.requestedAt,
+    this.requestedStatus, // NEW
     this.status = RequestStatus.pending,
     this.respondedAt,
   });
@@ -23,6 +25,11 @@ class VisitorRequest {
       visitorId: json['visitorId'],
       visitorName: json['visitorName'],
       requestedAt: DateTime.parse(json['requestedAt']),
+      requestedStatus: json['requestedStatus'] != null // NEW
+          ? GardenStatus.values.firstWhere(
+            (e) => e.toString() == 'GardenStatus.${json['requestedStatus']}',
+      )
+          : null,
       status: RequestStatus.values.firstWhere(
             (e) => e.toString() == 'RequestStatus.${json['status']}',
       ),
@@ -38,6 +45,7 @@ class VisitorRequest {
       'visitorId': visitorId,
       'visitorName': visitorName,
       'requestedAt': requestedAt.toIso8601String(),
+      'requestedStatus': requestedStatus?.toString().split('.').last, // NEW
       'status': status.toString().split('.').last,
       'respondedAt': respondedAt?.toIso8601String(),
     };
@@ -48,6 +56,7 @@ class VisitorRequest {
     String? visitorId,
     String? visitorName,
     DateTime? requestedAt,
+    GardenStatus? requestedStatus, // NEW
     RequestStatus? status,
     DateTime? respondedAt,
   }) {
@@ -56,6 +65,7 @@ class VisitorRequest {
       visitorId: visitorId ?? this.visitorId,
       visitorName: visitorName ?? this.visitorName,
       requestedAt: requestedAt ?? this.requestedAt,
+      requestedStatus: requestedStatus ?? this.requestedStatus, // NEW
       status: status ?? this.status,
       respondedAt: respondedAt ?? this.respondedAt,
     );

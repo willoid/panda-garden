@@ -64,6 +64,7 @@ class DatabaseService {
       visitorId: 'visitor_002',
       visitorName: 'Bob Smith',
       requestedAt: DateTime.now().subtract(const Duration(hours: 2)),
+      requestedStatus: GardenStatus.inGarden, // NEW: Bob wants to go to garden
       status: RequestStatus.pending,
     ));
   }

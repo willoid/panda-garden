@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/user.dart';
 import '../models/visitor_request.dart';
 
 class RequestCard extends StatelessWidget {
@@ -49,6 +50,33 @@ class RequestCard extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              request.requestedStatus != null
+                                  ? Icons.swap_horiz
+                                  : Icons.access_time,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                request.requestedStatus != null
+                                    ? 'Wants to change status to: ${request.requestedStatus!.emoji} ${request.requestedStatus!.displayName}'
+                                    : 'Requesting to visit now',
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
