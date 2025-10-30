@@ -220,16 +220,11 @@ class ApiService {
         .toList();
   }
 
-  Future<void> createRequest({
-    DateTime? plannedVisitTime,
-    String? notes,
-  }) async {
+  Future<void> createRequest({String? notes}) async {
     await _makeRequest(
       'POST',
       'requests',
       body: {
-        if (plannedVisitTime != null) 
-          'plannedVisitTime': plannedVisitTime.toIso8601String(),
         if (notes != null) 'notes': notes,
       },
     );

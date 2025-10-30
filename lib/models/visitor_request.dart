@@ -5,7 +5,6 @@ class VisitorRequest {
   final String visitorId;
   final String visitorName;
   final DateTime requestedAt;
-  final DateTime? plannedVisitTime;
   RequestStatus status;
   final DateTime? respondedAt;
 
@@ -14,7 +13,6 @@ class VisitorRequest {
     required this.visitorId,
     required this.visitorName,
     required this.requestedAt,
-    this.plannedVisitTime,
     this.status = RequestStatus.pending,
     this.respondedAt,
   });
@@ -25,11 +23,8 @@ class VisitorRequest {
       visitorId: json['visitorId'],
       visitorName: json['visitorName'],
       requestedAt: DateTime.parse(json['requestedAt']),
-      plannedVisitTime: json['plannedVisitTime'] != null
-          ? DateTime.parse(json['plannedVisitTime'])
-          : null,
       status: RequestStatus.values.firstWhere(
-        (e) => e.toString() == 'RequestStatus.${json['status']}',
+            (e) => e.toString() == 'RequestStatus.${json['status']}',
       ),
       respondedAt: json['respondedAt'] != null
           ? DateTime.parse(json['respondedAt'])
@@ -43,7 +38,6 @@ class VisitorRequest {
       'visitorId': visitorId,
       'visitorName': visitorName,
       'requestedAt': requestedAt.toIso8601String(),
-      'plannedVisitTime': plannedVisitTime?.toIso8601String(),
       'status': status.toString().split('.').last,
       'respondedAt': respondedAt?.toIso8601String(),
     };
@@ -54,7 +48,6 @@ class VisitorRequest {
     String? visitorId,
     String? visitorName,
     DateTime? requestedAt,
-    DateTime? plannedVisitTime,
     RequestStatus? status,
     DateTime? respondedAt,
   }) {
@@ -63,7 +56,6 @@ class VisitorRequest {
       visitorId: visitorId ?? this.visitorId,
       visitorName: visitorName ?? this.visitorName,
       requestedAt: requestedAt ?? this.requestedAt,
-      plannedVisitTime: plannedVisitTime ?? this.plannedVisitTime,
       status: status ?? this.status,
       respondedAt: respondedAt ?? this.respondedAt,
     );

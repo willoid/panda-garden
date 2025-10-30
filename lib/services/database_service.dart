@@ -59,13 +59,11 @@ class DatabaseService {
       _passwords[visitor.email] = 'visitor123';
     }
 
-    // Add a sample request
     _requests.add(VisitorRequest(
       id: 'req_001',
       visitorId: 'visitor_002',
       visitorName: 'Bob Smith',
       requestedAt: DateTime.now().subtract(const Duration(hours: 2)),
-      plannedVisitTime: DateTime.now().add(const Duration(hours: 3)),
       status: RequestStatus.pending,
     ));
   }

@@ -62,29 +62,6 @@ class RequestCard extends StatelessWidget {
               ],
             ),
             
-            if (request.plannedVisitTime != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Planned visit: ${_formatDateTime(request.plannedVisitTime!)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            
             if (request.status == RequestStatus.pending) ...[
               const SizedBox(height: 16),
               Row(

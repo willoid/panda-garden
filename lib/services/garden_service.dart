@@ -67,19 +67,18 @@ class GardenService extends ChangeNotifier {
     await _db.updateUser(_pandaUser!);
     notifyListeners();
   }
-
-  Future<void> createVisitorRequest(String visitorId, String visitorName, DateTime? plannedTime) async {
+  Future<void> createVisitorRequest(String visitorId, String visitorName) async {
     final request = VisitorRequest(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       visitorId: visitorId,
       visitorName: visitorName,
       requestedAt: DateTime.now(),
-      plannedVisitTime: plannedTime,
+      // REMOVE: plannedVisitTime: plannedTime,
       status: RequestStatus.pending,
     );
 
     await _db.createRequest(request);
-    
+
     // Send push notification to panda
     await NotificationService.instance.showNotification(
       title: '🐼 New Visitor Request',

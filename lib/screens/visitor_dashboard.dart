@@ -14,7 +14,6 @@ class VisitorDashboard extends StatefulWidget {
 }
 
 class _VisitorDashboardState extends State<VisitorDashboard> {
-  DateTime? _selectedVisitTime;
 
   @override
   void initState() {
@@ -29,47 +28,21 @@ class _VisitorDashboardState extends State<VisitorDashboard> {
     final authService = Provider.of<AuthService>(context, listen: false);
     final gardenService = Provider.of<GardenService>(context, listen: false);
     final currentUser = authService.currentUser;
-    
+
     if (currentUser == null) return;
 
-    // Show time picker dialog
-    final selectedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
+    await gardenService.createVisitorRequest(
+      currentUser.id,
+      currentUser.name,
     );
 
-    if (selectedDate != null && mounted) {
-      final selectedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Visit request sent to Panda!'),
+          backgroundColor: Colors.green,
+        ),
       );
-
-      if (selectedTime != null && mounted) {
-        _selectedVisitTime = DateTime(
-          selectedDate.year,
-          selectedDate.month,
-          selectedDate.day,
-          selectedTime.hour,
-          selectedTime.minute,
-        );
-
-        await gardenService.createVisitorRequest(
-          currentUser.id,
-          currentUser.name,
-          _selectedVisitTime,
-        );
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Visit request sent to Panda!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      }
     }
   }
 
@@ -340,7 +313,7 @@ class _VisitorDashboardState extends State<VisitorDashboard> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    _formatDate(request.plannedVisitTime ?? request.requestedAt),
+                                    _formatDate(request.requestedAt),
                                     style: const TextStyle(fontSize: 14),
                                   ),
                                 ),
