@@ -1,25 +1,33 @@
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
-import 'database_service.dart';
+import 'api_service.dart';
 
 class AuthService extends ChangeNotifier {
   User? _currentUser;
-  final DatabaseService _db = DatabaseService.instance;
+  final ApiService _api = ApiService();
 
   User? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
   bool get isPanda => _currentUser?.type == UserType.panda;
 
+  // Initialize and try to restore session
+  Future<void> init() async {
+    await _api.init();
+    try {
+      _currentUser = await _api.getCurrentUser();
+      notifyListeners();
+    } catch (e) {
+      // No valid session
+      _currentUser = null;
+    }
+  }
+
   Future<bool> login(String email, String password) async {
     try {
-      // Simulate authentication
-      final user = await _db.authenticateUser(email, password);
-      if (user != null) {
-        _currentUser = user;
-        notifyListeners();
-        return true;
-      }
-      return false;
+      final response = await _api.login(email, password);
+      _currentUser = response.user;
+      notifyListeners();
+      return true;
     } catch (e) {
       print('Login error: $e');
       return false;
@@ -32,28 +40,8 @@ class AuthService extends ChangeNotifier {
     required String password,
   }) async {
     try {
-      // Check if email already exists
-      final existingUser = await _db.getUserByEmail(email);
-      if (existingUser != null) {
-        throw Exception('Email already registered');
-      }
-
-      // Create new visitor user
-      final newUser = User(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: name,
-        email: email,
-        type: UserType.visitor,
-        createdAt: DateTime.now(),
-        isApproved: false,
-        status: GardenStatus.notInGarden,
-      );
-
-      // Save to database
-      await _db.createUser(newUser, password);
-      
-      // Auto login after registration
-      _currentUser = newUser;
+      final response = await _api.register(name, email, password);
+      _currentUser = response.user;
       notifyListeners();
       return true;
     } catch (e) {
@@ -62,7 +50,12 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  void logout() {
+  Future<void> logout() async {
+    try {
+      await _api.logout();
+    } catch (e) {
+      print('Logout error: $e');
+    }
     _currentUser = null;
     notifyListeners();
   }
@@ -70,22 +63,27 @@ class AuthService extends ChangeNotifier {
   Future<void> updateUserStatus(GardenStatus status) async {
     if (_currentUser == null) return;
 
-    _currentUser = _currentUser!.copyWith(
-      status: status,
-      statusUpdatedAt: DateTime.now(),
-    );
-    
-    await _db.updateUser(_currentUser!);
-    notifyListeners();
+    try {
+      await _api.updateMyStatus(status);
+      _currentUser = _currentUser!.copyWith(
+        status: status,
+        statusUpdatedAt: DateTime.now(),
+      );
+      notifyListeners();
+    } catch (e) {
+      print('Update status error: $e');
+      rethrow;
+    }
   }
 
   Future<void> refreshCurrentUser() async {
     if (_currentUser == null) return;
-    
-    final updatedUser = await _db.getUserById(_currentUser!.id);
-    if (updatedUser != null) {
-      _currentUser = updatedUser;
+
+    try {
+      _currentUser = await _api.getCurrentUser();
       notifyListeners();
+    } catch (e) {
+      print('Refresh user error: $e');
     }
   }
 }

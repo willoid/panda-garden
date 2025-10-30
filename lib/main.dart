@@ -15,17 +15,23 @@ void main() async {
   // Initialize services
   await NotificationService.instance.initialize();
 
-  runApp(const PandaGardenApp());
+  // Initialize AuthService
+  final authService = AuthService();
+  await authService.init();
+
+  runApp(PandaGardenApp(authService: authService));
 }
 
 class PandaGardenApp extends StatelessWidget {
-  const PandaGardenApp({Key? key}) : super(key: key);
+  final AuthService authService;
+
+  const PandaGardenApp({Key? key, required this.authService}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider.value(value: authService),
         ChangeNotifierProvider(create: (_) => GardenService()),
       ],
       child: MaterialApp(

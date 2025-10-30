@@ -3,13 +3,11 @@ import '../models/user.dart';
 
 class VisitorCard extends StatelessWidget {
   final User visitor;
-  final VoidCallback? onToggleApproval;
   final Function(GardenStatus)? onUpdateStatus;
 
   const VisitorCard({
     Key? key,
     required this.visitor,
-    this.onToggleApproval,
     this.onUpdateStatus,
   }) : super(key: key);
 
@@ -23,15 +21,10 @@ class VisitorCard extends StatelessWidget {
           children: [
             ListTile(
               leading: CircleAvatar(
-                backgroundColor: visitor.isApproved 
-                    ? Colors.green.withOpacity(0.2)
-                    : Colors.orange.withOpacity(0.2),
+                backgroundColor: _getStatusColor(visitor.status),
                 child: Text(
-                  '👤',
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: visitor.isApproved ? Colors.green : Colors.orange,
-                  ),
+                  visitor.status?.emoji ?? '🏠',
+                  style: const TextStyle(fontSize: 24),
                 ),
               ),
               title: Text(
@@ -49,17 +42,15 @@ class VisitorCard extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        visitor.isApproved 
-                            ? Icons.check_circle 
-                            : Icons.hourglass_empty,
+                        _getStatusIcon(visitor.status),
                         size: 16,
-                        color: visitor.isApproved ? Colors.green : Colors.orange,
+                        color: _getStatusIconColor(visitor.status),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        visitor.isApproved ? 'Approved' : 'Pending',
+                        visitor.status?.displayName ?? 'Not in Garden',
                         style: TextStyle(
-                          color: visitor.isApproved ? Colors.green : Colors.orange,
+                          color: _getStatusIconColor(visitor.status),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -67,20 +58,9 @@ class VisitorCard extends StatelessWidget {
                   ),
                 ],
               ),
-              trailing: onToggleApproval != null
-                  ? IconButton(
-                      icon: Icon(
-                        visitor.isApproved 
-                            ? Icons.person_remove 
-                            : Icons.person_add,
-                        color: visitor.isApproved ? Colors.red : Colors.green,
-                      ),
-                      onPressed: onToggleApproval,
-                    )
-                  : null,
             ),
-            
-            if (visitor.isApproved && visitor.status != null) ...[
+
+            if (visitor.status != null) ...[
               const Divider(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -97,12 +77,12 @@ class VisitorCard extends StatelessWidget {
                         style: const TextStyle(fontSize: 16),
                       ),
                       label: Text(visitor.status!.displayName),
-                      backgroundColor: _getStatusColor(visitor.status!),
+                      backgroundColor: _getStatusColor(visitor.status),
                     ),
                   ],
                 ),
               ),
-              
+
               if (onUpdateStatus != null) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -112,7 +92,7 @@ class VisitorCard extends StatelessWidget {
                       return ActionChip(
                         avatar: Text(status.emoji),
                         label: Text(
-                          status == GardenStatus.notInGarden ? 'Not' 
+                          status == GardenStatus.notInGarden ? 'Not'
                               : status == GardenStatus.goingToGarden ? 'Going'
                               : 'In',
                           style: const TextStyle(fontSize: 12),
@@ -134,7 +114,7 @@ class VisitorCard extends StatelessWidget {
                 ),
               ],
             ],
-            
+
             if (visitor.statusUpdatedAt != null) ...[
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -153,13 +133,38 @@ class VisitorCard extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(GardenStatus status) {
+  IconData _getStatusIcon(GardenStatus? status) {
+    switch (status) {
+      case GardenStatus.inGarden:
+        return Icons.nature;
+      case GardenStatus.goingToGarden:
+        return Icons.directions_walk;
+      case GardenStatus.notInGarden:
+      case null:
+        return Icons.home;
+    }
+  }
+
+  Color _getStatusIconColor(GardenStatus? status) {
+    switch (status) {
+      case GardenStatus.inGarden:
+        return Colors.green;
+      case GardenStatus.goingToGarden:
+        return Colors.blue;
+      case GardenStatus.notInGarden:
+      case null:
+        return Colors.grey;
+    }
+  }
+
+  Color _getStatusColor(GardenStatus? status) {
     switch (status) {
       case GardenStatus.inGarden:
         return Colors.green.withOpacity(0.2);
       case GardenStatus.goingToGarden:
         return Colors.blue.withOpacity(0.2);
       case GardenStatus.notInGarden:
+      case null:
         return Colors.grey.withOpacity(0.2);
     }
   }
@@ -167,7 +172,7 @@ class VisitorCard extends StatelessWidget {
   String _formatTime(DateTime time) {
     final now = DateTime.now();
     final difference = now.difference(time);
-    
+
     if (difference.inMinutes < 1) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {

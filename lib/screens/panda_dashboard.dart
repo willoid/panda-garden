@@ -3,10 +3,8 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/garden_service.dart';
 import '../models/user.dart';
-import '../models/visitor_request.dart';
 import '../widgets/status_selector.dart';
 import '../widgets/visitor_card.dart';
-import '../widgets/request_card.dart';
 
 class PandaDashboard extends StatefulWidget {
   const PandaDashboard({Key? key}) : super(key: key);
@@ -22,8 +20,8 @@ class _PandaDashboardState extends State<PandaDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    
+    _tabController = TabController(length: 2, vsync: this);
+
     // Load data when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<GardenService>(context, listen: false).loadData();
@@ -61,7 +59,6 @@ class _PandaDashboardState extends State<PandaDashboard>
           controller: _tabController,
           tabs: const [
             Tab(text: 'Status', icon: Icon(Icons.home)),
-            Tab(text: 'Requests', icon: Icon(Icons.notifications)),
             Tab(text: 'Visitors', icon: Icon(Icons.people)),
           ],
         ),
@@ -70,7 +67,6 @@ class _PandaDashboardState extends State<PandaDashboard>
         controller: _tabController,
         children: [
           _buildStatusTab(context, gardenService),
-          _buildRequestsTab(context, gardenService),
           _buildVisitorsTab(context, gardenService),
         ],
       ),
@@ -79,7 +75,7 @@ class _PandaDashboardState extends State<PandaDashboard>
 
   Widget _buildStatusTab(BuildContext context, GardenService gardenService) {
     final pandaUser = gardenService.pandaUser;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -135,7 +131,7 @@ class _PandaDashboardState extends State<PandaDashboard>
             ),
           ),
           const SizedBox(height: 20),
-          
+
           // Garden Overview
           Card(
             child: Padding(
@@ -164,15 +160,9 @@ class _PandaDashboardState extends State<PandaDashboard>
                   ),
                   const SizedBox(height: 8),
                   _buildStatRow(
-                    icon: '⏳',
-                    label: 'Pending Requests',
-                    value: gardenService.pendingRequests.length.toString(),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildStatRow(
-                    icon: '✅',
-                    label: 'Approved Visitors',
-                    value: gardenService.approvedVisitors.length.toString(),
+                    icon: '📊',
+                    label: 'Total Visitors',
+                    value: gardenService.visitors.length.toString(),
                   ),
                 ],
               ),
@@ -183,61 +173,9 @@ class _PandaDashboardState extends State<PandaDashboard>
     );
   }
 
-  Widget _buildRequestsTab(BuildContext context, GardenService gardenService) {
-    final pendingRequests = gardenService.pendingRequests;
-    
-    if (pendingRequests.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '📭',
-              style: TextStyle(fontSize: 60),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'No pending requests',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: pendingRequests.length,
-      itemBuilder: (context, index) {
-        final request = pendingRequests[index];
-        return RequestCard(
-          request: request,
-          onApprove: () async {
-            await gardenService.approveRequest(request.id);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('✅ ${request.visitorName} approved'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          },
-          onDeny: () async {
-            await gardenService.denyRequest(request.id);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('❌ ${request.visitorName} denied'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   Widget _buildVisitorsTab(BuildContext context, GardenService gardenService) {
     final visitors = gardenService.visitors;
-    
+
     if (visitors.isEmpty) {
       return const Center(
         child: Column(
@@ -257,62 +195,24 @@ class _PandaDashboardState extends State<PandaDashboard>
       );
     }
 
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Approved'),
-              Tab(text: 'Pending'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                // Approved visitors
-                ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: gardenService.approvedVisitors.length,
-                  itemBuilder: (context, index) {
-                    final visitor = gardenService.approvedVisitors[index];
-                    return VisitorCard(
-                      visitor: visitor,
-                      onToggleApproval: () async {
-                        await gardenService.toggleVisitorApproval(visitor.id);
-                      },
-                      onUpdateStatus: (status) async {
-                        await gardenService.updateVisitorStatus(visitor.id, status);
-                      },
-                    );
-                  },
-                ),
-                // Unapproved visitors
-                ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: gardenService.unapprovedVisitors.length,
-                  itemBuilder: (context, index) {
-                    final visitor = gardenService.unapprovedVisitors[index];
-                    return VisitorCard(
-                      visitor: visitor,
-                      onToggleApproval: () async {
-                        await gardenService.toggleVisitorApproval(visitor.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('✅ ${visitor.name} approved'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      },
-                      onUpdateStatus: null,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: visitors.length,
+      itemBuilder: (context, index) {
+        final visitor = visitors[index];
+        return VisitorCard(
+          visitor: visitor,
+          onUpdateStatus: (status) async {
+            await gardenService.updateVisitorStatus(visitor.id, status);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ ${visitor.name} status updated to ${status.displayName}'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

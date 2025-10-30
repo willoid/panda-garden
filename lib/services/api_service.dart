@@ -3,21 +3,18 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
-import '../models/visitor_request.dart';
 
 class ApiService {
   static const String baseUrl = 'https://willyc38.sg-host.com/api';
-
-  
   static const Duration timeout = Duration(seconds: 30);
-  
+
   // Singleton instance
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
 
   String? _authToken;
-  
+
   // Initialize and load saved token
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,6 +41,46 @@ class ApiService {
     if (_authToken != null) 'Authorization': 'Bearer $_authToken',
   };
 
+  // Convert snake_case to camelCase for user data
+  Map<String, dynamic> _convertUserData(Map<String, dynamic> data) {
+    return {
+      'id': data['id']?.toString() ?? '',
+      'name': data['name'] ?? '',
+      'email': data['email'] ?? '',
+      'type': data['user_type'] ?? data['type'] ?? 'visitor',
+      'createdAt': data['created_at'] ?? DateTime.now().toIso8601String(),
+      'status': _convertStatusFromDb(data['garden_status'] ?? data['status']),
+      'statusUpdatedAt': data['status_updated_at'],
+    };
+  }
+
+  // Convert database status to app status
+  String? _convertStatusFromDb(String? status) {
+    if (status == null) return null;
+    switch (status) {
+      case 'not_in_garden':
+        return 'notInGarden';
+      case 'going_to_garden':
+        return 'goingToGarden';
+      case 'in_garden':
+        return 'inGarden';
+      default:
+        return status;
+    }
+  }
+
+  // Convert app status to database status
+  String _convertStatusToDb(GardenStatus status) {
+    switch (status) {
+      case GardenStatus.notInGarden:
+        return 'not_in_garden';
+      case GardenStatus.goingToGarden:
+        return 'going_to_garden';
+      case GardenStatus.inGarden:
+        return 'in_garden';
+    }
+  }
+
   // Generic HTTP request handler
   Future<Map<String, dynamic>> _makeRequest(
     String method,
@@ -58,9 +95,11 @@ class ApiService {
         url = url.replace(queryParameters: queryParams);
       }
 
+      print('Making $method request to: $url'); // Debug log
+
       // Make request based on method
       http.Response response;
-      
+
       switch (method.toUpperCase()) {
         case 'GET':
           response = await http.get(url, headers: _headers).timeout(timeout);
@@ -86,6 +125,9 @@ class ApiService {
           throw Exception('Unsupported HTTP method: $method');
       }
 
+      print('Response status: ${response.statusCode}'); // Debug log
+      print('Response body: ${response.body}'); // Debug log
+
       // Parse response
       final Map<String, dynamic> data = json.decode(response.body);
 
@@ -99,17 +141,20 @@ class ApiService {
         );
       }
     } on http.ClientException catch (e) {
+      print('Network error: ${e.message}'); // Debug log
       throw ApiException('Network error: ${e.message}', 0);
     } on TimeoutException {
+      print('Request timed out'); // Debug log
       throw ApiException('Request timed out', 0);
     } catch (e) {
+      print('Unexpected error: $e'); // Debug log
       if (e is ApiException) rethrow;
-      throw ApiException('An unexpected error occurred', 0);
+      throw ApiException('An unexpected error occurred: $e', 0);
     }
   }
 
   // Authentication APIs
-  
+
   Future<AuthResponse> login(String email, String password) async {
     final response = await _makeRequest(
       'POST',
@@ -125,7 +170,7 @@ class ApiService {
       return AuthResponse(
         success: true,
         token: response['token'],
-        user: User.fromJson(response['user']),
+        user: User.fromJson(_convertUserData(response['user'])),
       );
     }
 
@@ -148,7 +193,7 @@ class ApiService {
       return AuthResponse(
         success: true,
         token: response['token'],
-        user: User.fromJson(response['user']),
+        user: User.fromJson(_convertUserData(response['user'])),
       );
     }
 
@@ -165,7 +210,7 @@ class ApiService {
 
   Future<User> getCurrentUser() async {
     final response = await _makeRequest('GET', 'auth/me');
-    return User.fromJson(response['user']);
+    return User.fromJson(_convertUserData(response['user']));
   }
 
   Future<String> refreshToken() async {
@@ -175,30 +220,11 @@ class ApiService {
     return newToken;
   }
 
-  // User APIs
-  
-  Future<List<User>> getAllUsers() async {
-    final response = await _makeRequest('GET', 'users');
-    return (response['users'] as List)
-        .map((json) => User.fromJson(json))
-        .toList();
-  }
-
-  Future<void> updateUserStatus(String userId, GardenStatus status) async {
-    await _makeRequest(
-      'PUT',
-      'users/$userId',
-      body: {
-        'status': status.toString().split('.').last,
-      },
-    );
-  }
-
   // Status APIs
-  
+
   Future<User> getPandaStatus() async {
     final response = await _makeRequest('GET', 'status');
-    return User.fromJson(response['panda']);
+    return User.fromJson(_convertUserData(response['panda']));
   }
 
   Future<void> updateMyStatus(GardenStatus status) async {
@@ -206,76 +232,30 @@ class ApiService {
       'PUT',
       'status',
       body: {
-        'status': status.toString().split('.').last,
+        'status': _convertStatusToDb(status),
       },
     );
   }
 
-  // Request APIs
-  
-  Future<List<VisitorRequest>> getRequests() async {
-    final response = await _makeRequest('GET', 'requests');
-    return (response['requests'] as List)
-        .map((json) => VisitorRequest.fromJson(json))
-        .toList();
-  }
+  // User APIs
 
-  Future<void> createRequest({String? notes}) async {
-    await _makeRequest(
-      'POST',
-      'requests',
-      body: {
-        if (notes != null) 'notes': notes,
-      },
-    );
-  }
-
-  Future<void> updateRequestStatus(String requestId, String status) async {
+  Future<void> updateUserStatus(String userId, GardenStatus status) async {
     await _makeRequest(
       'PUT',
-      'requests/$requestId',
+      'users/$userId',
       body: {
-        'status': status,
+        'status': _convertStatusToDb(status),
       },
     );
   }
 
   // Visitor APIs
-  
+
   Future<List<User>> getVisitors() async {
     final response = await _makeRequest('GET', 'visitors');
     return (response['visitors'] as List)
-        .map((json) => User.fromJson(json))
+        .map((json) => User.fromJson(_convertUserData(json)))
         .toList();
-  }
-
-  Future<void> updateVisitorApproval(String visitorId, bool approved) async {
-    await _makeRequest(
-      'PUT',
-      'visitors/$visitorId',
-      body: {
-        'approved': approved,
-      },
-    );
-  }
-
-  // Statistics API
-  
-  Future<GardenStats> getStats() async {
-    final response = await _makeRequest('GET', 'stats');
-    return GardenStats.fromJson(response['stats']);
-  }
-
-  // FCM Token Update
-  
-  Future<void> updateFcmToken(String token) async {
-    await _makeRequest(
-      'POST',
-      'auth/fcm-token',
-      body: {
-        'token': token,
-      },
-    );
   }
 }
 
@@ -291,32 +271,6 @@ class AuthResponse {
     required this.token,
     required this.user,
   });
-}
-
-class GardenStats {
-  final int visitorsInGarden;
-  final int visitorsGoing;
-  final int pendingRequests;
-  final int approvedVisitors;
-  final String? pandaStatus;
-
-  GardenStats({
-    required this.visitorsInGarden,
-    required this.visitorsGoing,
-    required this.pendingRequests,
-    required this.approvedVisitors,
-    this.pandaStatus,
-  });
-
-  factory GardenStats.fromJson(Map<String, dynamic> json) {
-    return GardenStats(
-      visitorsInGarden: json['visitors_in_garden'] ?? 0,
-      visitorsGoing: json['visitors_going'] ?? 0,
-      pendingRequests: json['pending_requests'] ?? 0,
-      approvedVisitors: json['approved_visitors'] ?? 0,
-      pandaStatus: json['panda_status'],
-    );
-  }
 }
 
 // Custom exception for API errors

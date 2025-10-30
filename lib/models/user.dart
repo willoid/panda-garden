@@ -4,7 +4,6 @@ class User {
   final String email;
   final UserType type;
   final DateTime createdAt;
-  bool isApproved;
   GardenStatus? status;
   DateTime? statusUpdatedAt;
 
@@ -14,7 +13,6 @@ class User {
     required this.email,
     required this.type,
     required this.createdAt,
-    this.isApproved = false,
     this.status,
     this.statusUpdatedAt,
   });
@@ -25,14 +23,13 @@ class User {
       name: json['name'],
       email: json['email'],
       type: UserType.values.firstWhere(
-        (e) => e.toString() == 'UserType.${json['type']}',
+            (e) => e.toString() == 'UserType.${json['type']}',
       ),
       createdAt: DateTime.parse(json['createdAt']),
-      isApproved: json['isApproved'] ?? false,
       status: json['status'] != null
           ? GardenStatus.values.firstWhere(
-              (e) => e.toString() == 'GardenStatus.${json['status']}',
-            )
+            (e) => e.toString() == 'GardenStatus.${json['status']}',
+      )
           : null,
       statusUpdatedAt: json['statusUpdatedAt'] != null
           ? DateTime.parse(json['statusUpdatedAt'])
@@ -47,7 +44,6 @@ class User {
       'email': email,
       'type': type.toString().split('.').last,
       'createdAt': createdAt.toIso8601String(),
-      'isApproved': isApproved,
       'status': status?.toString().split('.').last,
       'statusUpdatedAt': statusUpdatedAt?.toIso8601String(),
     };
@@ -59,9 +55,9 @@ class User {
     String? email,
     UserType? type,
     DateTime? createdAt,
-    bool? isApproved,
     GardenStatus? status,
     DateTime? statusUpdatedAt,
+    bool clearStatus = false,
   }) {
     return User(
       id: id ?? this.id,
@@ -69,9 +65,8 @@ class User {
       email: email ?? this.email,
       type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
-      isApproved: isApproved ?? this.isApproved,
-      status: status,
-      statusUpdatedAt: statusUpdatedAt,
+      status: clearStatus ? null : (status ?? this.status),
+      statusUpdatedAt: clearStatus ? null : (statusUpdatedAt ?? this.statusUpdatedAt),
     );
   }
 }

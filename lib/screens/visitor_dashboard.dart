@@ -91,17 +91,14 @@ class _VisitorDashboardState extends State<VisitorDashboard> {
                 ),
               ),
 
-              // Only show content below if panda is going to garden or in garden
               if (pandaUser?.status == GardenStatus.goingToGarden ||
                   pandaUser?.status == GardenStatus.inGarden) ...[
                 const SizedBox(height: 20),
 
-                // Other Visitors List
                 ..._buildVisitorsList(gardenService, currentUser?.id),
 
                 const SizedBox(height: 20),
 
-                // My Status Card
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -154,7 +151,6 @@ class _VisitorDashboardState extends State<VisitorDashboard> {
   List<Widget> _buildVisitorsList(GardenService gardenService, String? currentUserId) {
     final activeVisitors = gardenService.visitors.where((v) {
       return v.id != currentUserId &&
-          v.isApproved &&
           (v.status == GardenStatus.goingToGarden ||
               v.status == GardenStatus.inGarden);
     }).toList();
